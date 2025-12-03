@@ -1,0 +1,37 @@
+# This image mimics a bare debian host environment that is freshly booted into before devsetup is run.
+FROM debian:13
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Assume minimal dependencies
+RUN apt-get update -y && \
+	apt-get install -y --no-install-recommends \
+	sudo curl git ssh ca-certificates && \
+	rm -rf /var/lib/apt/lists/*
+
+# Logged in as a sudo user
+RUN useradd -ms /bin/bash tester && echo "tester ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/tester
+
+# Mimic a logged in user
+USER tester
+WORKDIR /home/tester
+
+
+# Run this before copying all files to cache this layer on it's own
+# This installs make, uv, and mise
+COPY --chown=tester:tester scripts/bootstrap.sh .
+RUN ./bootstrap.sh
+
+COPY --chown=tester:tester Makefile devsetup/
+
+# Cache uv layer separately for fast install & sync in tests
+# We use bash -l to load the .profile here with debian path defaults
+COPY --chown=tester:tester pyproject.toml uv.lock* mise.toml requirements.yml ansible.cfg devsetup/
+RUN --mount=type=cache,target=/home/tester/.cache/uv,uid=1000,gid=1000 \
+	--mount=type=cache,target=/home/tester/.cache/mise,uid=1000,gid=1000 \
+	cd devsetup && bash -lc 'make install-deps'
+
+COPY --chown=tester:tester tests devsetup/tests/
+
+# Default to shell for inspection
+CMD ["/bin/bash"]
