@@ -1,3 +1,5 @@
+PROJECT_NAME ?= devsetup
+
 UV ?= uv
 UV_RUN ?= $(UV) run
 
@@ -7,8 +9,8 @@ PYTEST_FLAGS ?= --color=yes
 MISE ?= mise
 MISE_EXEC ?= $(MISE) exec --
 
-DEBIAN_TEST_IMAGE ?= debian-tester
-DEBIAN_TEST_DOCKERFILE ?= Dockerfile.$(DEBIAN_TEST_IMAGE)
+DEBIAN_TEST_IMAGE ?= $(PROJECT_NAME)-debian-tester
+DEBIAN_TEST_DOCKERFILE ?= Dockerfile.debian-tester
 
 DOCKER ?= docker
 DOCKER_BUILD ?= $(DOCKER) buildx build
